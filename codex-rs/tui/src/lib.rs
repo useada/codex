@@ -6,15 +6,13 @@ use app::App;
 use codex_core::config::Config;
 use codex_core::config::ConfigOverrides;
 use codex_core::config_types::SandboxMode;
-use codex_core::openai_api_key::OPENAI_API_KEY_ENV_VAR;
-use codex_core::openai_api_key::get_openai_api_key;
-use codex_core::openai_api_key::set_openai_api_key;
 use codex_core::protocol::AskForApproval;
 use codex_core::util::is_inside_git_repo;
-use codex_login::try_read_openai_api_key;
+use codex_login::load_auth;
 use log_layer::TuiLogLayer;
 use std::fs::OpenOptions;
 use std::path::PathBuf;
+use tracing::error;
 use tracing_appender::non_blocking;
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::prelude::*;
@@ -224,18 +222,21 @@ fn restore() {
 
 #[allow(clippy::unwrap_used)]
 fn should_show_login_screen(config: &Config) -> bool {
-    if is_in_need_of_openai_api_key(config) {
+    if config.model_provider.requires_auth {
         // Reading the OpenAI API key is an async operation because it may need
         // to refresh the token. Block on it.
         let codex_home = config.codex_home.clone();
         let (tx, rx) = tokio::sync::oneshot::channel();
         tokio::spawn(async move {
-            match try_read_openai_api_key(&codex_home).await {
-                Ok(openai_api_key) => {
-                    set_openai_api_key(openai_api_key);
+            match load_auth(&codex_home) {
+                Ok(Some(_)) => {
                     tx.send(false).unwrap();
                 }
-                Err(_) => {
+                Ok(None) => {
+                    tx.send(true).unwrap();
+                }
+                Err(err) => {
+                    error!("Failed to read auth.json: {err}");
                     tx.send(true).unwrap();
                 }
             }
@@ -245,14 +246,4 @@ fn should_show_login_screen(config: &Config) -> bool {
     } else {
         false
     }
-}
-
-fn is_in_need_of_openai_api_key(config: &Config) -> bool {
-    let is_using_openai_key = config
-        .model_provider
-        .env_key
-        .as_ref()
-        .map(|s| s == OPENAI_API_KEY_ENV_VAR)
-        .unwrap_or(false);
-    is_using_openai_key && get_openai_api_key().is_none()
 }

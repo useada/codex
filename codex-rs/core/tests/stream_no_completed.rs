@@ -74,7 +74,7 @@ async fn retries_on_early_close() {
 
     let model_provider = ModelProviderInfo {
         name: "openai".into(),
-        base_url: format!("{}/v1", server.uri()),
+        base_url: Some(format!("{}/v1", server.uri())),
         // Environment variable that should exist in the test environment.
         // ModelClient will return an error if the environment variable for the
         // provider is not set.
@@ -88,6 +88,7 @@ async fn retries_on_early_close() {
         request_max_retries: Some(0),
         stream_max_retries: Some(1),
         stream_idle_timeout_ms: Some(2000),
+        requires_auth: false,
     };
 
     let ctrl_c = std::sync::Arc::new(tokio::sync::Notify::new());

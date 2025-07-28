@@ -15,6 +15,8 @@ use crate::model_provider_info::built_in_model_providers;
 use crate::openai_model_info::get_model_info;
 use crate::protocol::AskForApproval;
 use crate::protocol::SandboxPolicy;
+use codex_login::CodexAuth;
+use codex_login::load_auth;
 use dirs::home_dir;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -143,6 +145,12 @@ pub struct Config {
 
     /// Experimental rollout resume path (absolute path to .jsonl; undocumented).
     pub experimental_resume: Option<PathBuf>,
+
+    /// Client ID for the ChatGPT Auth.
+    pub experimental_client_id: Option<String>,
+
+    /// Auth information for the model provider.
+    pub auth: Option<CodexAuth>,
 }
 
 impl Config {
@@ -333,6 +341,9 @@ pub struct ConfigToml {
 
     /// Experimental path to a file whose contents replace the built-in BASE_INSTRUCTIONS.
     pub experimental_instructions_file: Option<PathBuf>,
+
+    /// Client ID for the ChatGPT Auth.
+    pub experimental_client_id: Option<String>,
 }
 
 impl ConfigToml {
@@ -469,6 +480,8 @@ impl Config {
             cfg.experimental_instructions_file.as_ref(),
         ));
 
+        let auth = load_auth(&codex_home)?;
+
         let config = Self {
             model,
             model_context_window,
@@ -518,6 +531,8 @@ impl Config {
                 .unwrap_or("https://chatgpt.com/backend-api/".to_string()),
 
             experimental_resume,
+            experimental_client_id: cfg.experimental_client_id,
+            auth,
         };
         Ok(config)
     }
@@ -751,7 +766,7 @@ disable_response_storage = true
 
         let openai_chat_completions_provider = ModelProviderInfo {
             name: "OpenAI using Chat Completions".to_string(),
-            base_url: "https://api.openai.com/v1".to_string(),
+            base_url: Some("https://api.openai.com/v1".to_string()),
             env_key: Some("OPENAI_API_KEY".to_string()),
             wire_api: crate::WireApi::Chat,
             env_key_instructions: None,
@@ -761,6 +776,7 @@ disable_response_storage = true
             request_max_retries: Some(4),
             stream_max_retries: Some(10),
             stream_idle_timeout_ms: Some(300_000),
+            requires_auth: false,
         };
         let model_provider_map = {
             let mut model_provider_map = built_in_model_providers();
@@ -841,6 +857,8 @@ disable_response_storage = true
                 chatgpt_base_url: "https://chatgpt.com/backend-api/".to_string(),
                 experimental_resume: None,
                 base_instructions: None,
+                experimental_client_id: None,
+                auth: None,
             },
             o3_profile_config
         );
@@ -889,6 +907,8 @@ disable_response_storage = true
             chatgpt_base_url: "https://chatgpt.com/backend-api/".to_string(),
             experimental_resume: None,
             base_instructions: None,
+            experimental_client_id: None,
+            auth: None,
         };
 
         assert_eq!(expected_gpt3_profile_config, gpt3_profile_config);
@@ -952,6 +972,8 @@ disable_response_storage = true
             chatgpt_base_url: "https://chatgpt.com/backend-api/".to_string(),
             experimental_resume: None,
             base_instructions: None,
+            experimental_client_id: None,
+            auth: None,
         };
 
         assert_eq!(expected_zdr_profile_config, zdr_profile_config);

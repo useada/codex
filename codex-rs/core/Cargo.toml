@@ -17,6 +17,7 @@ base64 = "0.22"
 bytes = "1.10.1"
 codex-apply-patch = { path = "../apply-patch" }
 codex-mcp-client = { path = "../mcp-client" }
+codex-login = { path = "../login" }
 dirs = "6"
 env-flags = "0.1.1"
 eventsource-stream = "0.2.3"
@@ -47,6 +48,7 @@ tree-sitter = "0.25.8"
 tree-sitter-bash = "0.25.0"
 uuid = { version = "1", features = ["serde", "v4"] }
 wildmatch = "2.4.0"
+chrono = { version = "0.4", features = ["serde"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 landlock = "0.4.1"

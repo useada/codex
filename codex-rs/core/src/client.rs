@@ -3,6 +3,7 @@ use std::path::Path;
 use std::time::Duration;
 
 use bytes::Bytes;
+use codex_login::AuthMode;
 use eventsource_stream::Eventsource;
 use futures::prelude::*;
 use reqwest::StatusCode;
@@ -28,6 +29,7 @@ use crate::config::Config;
 use crate::config_types::ReasoningEffort as ReasoningEffortConfig;
 use crate::config_types::ReasoningSummary as ReasoningSummaryConfig;
 use crate::error::CodexErr;
+use crate::error::EnvVarError;
 use crate::error::Result;
 use crate::flags::CODEX_RS_SSE_FIXTURE;
 use crate::model_provider_info::ModelProviderInfo;
@@ -114,13 +116,32 @@ impl ModelClient {
             return stream_from_fixture(path, self.provider.clone()).await;
         }
 
+        let auth = self.config.auth.as_ref().ok_or_else(|| {
+            CodexErr::EnvVar(EnvVarError {
+                var: "OPENAI_API_KEY".to_string(),
+                instructions: Some("Create an API key (https://platform.openai.com) and export it as an environment variable.".to_string()),
+            })
+        })?.clone();
+
+        let store = prompt.store && auth.mode != AuthMode::ChatGPT;
+
+        let base_url = match self.provider.base_url.clone() {
+            Some(url) => url,
+            None => match auth.mode {
+                AuthMode::ChatGPT => "https://chatgpt.com/backend-api/codex".to_string(),
+                AuthMode::ApiKey => "https://api.openai.com/v1".to_string(),
+            },
+        };
+
+        let token = auth.get_token().await?;
+
         let full_instructions = prompt.get_full_instructions(&self.config.model);
         let tools_json = create_tools_json_for_responses_api(prompt, &self.config.model)?;
         let reasoning = create_reasoning_param_for_request(&self.config, self.effort, self.summary);
 
         // Request encrypted COT if we are not storing responses,
         // otherwise reasoning items will be referenced by ID
-        let include = if !prompt.store && reasoning.is_some() {
+        let include: Vec<String> = if !store && reasoning.is_some() {
             vec!["reasoning.encrypted_content".to_string()]
         } else {
             vec![]
@@ -134,8 +155,7 @@ impl ModelClient {
             tool_choice: "auto",
             parallel_tool_calls: false,
             reasoning,
-            store: prompt.store,
-            // TODO: make this configurable
+            store,
             stream: true,
             include,
         };
@@ -148,16 +168,20 @@ impl ModelClient {
 
         let mut attempt = 0;
         let max_retries = self.provider.request_max_retries();
+
         loop {
             attempt += 1;
 
             let req_builder = self
-                .provider
-                .create_request_builder(&self.client)?
+                .client
+                .post(format!("{base_url}/responses"))
                 .header("OpenAI-Beta", "responses=experimental")
                 .header("session_id", self.session_id.to_string())
+                .bearer_auth(&token)
                 .header(reqwest::header::ACCEPT, "text/event-stream")
                 .json(&payload);
+
+            let req_builder = self.provider.apply_http_headers(req_builder);
 
             let res = req_builder.send().await;
             if let Ok(resp) = &res {
@@ -567,7 +591,7 @@ mod tests {
 
         let provider = ModelProviderInfo {
             name: "test".to_string(),
-            base_url: "https://test.com".to_string(),
+            base_url: Some("https://test.com".to_string()),
             env_key: Some("TEST_API_KEY".to_string()),
             env_key_instructions: None,
             wire_api: WireApi::Responses,
@@ -577,6 +601,7 @@ mod tests {
             request_max_retries: Some(0),
             stream_max_retries: Some(0),
             stream_idle_timeout_ms: Some(1000),
+            requires_auth: false,
         };
 
         let events = collect_events(
@@ -626,7 +651,7 @@ mod tests {
         let sse1 = format!("event: response.output_item.done\ndata: {item1}\n\n");
         let provider = ModelProviderInfo {
             name: "test".to_string(),
-            base_url: "https://test.com".to_string(),
+            base_url: Some("https://test.com".to_string()),
             env_key: Some("TEST_API_KEY".to_string()),
             env_key_instructions: None,
             wire_api: WireApi::Responses,
@@ -636,6 +661,7 @@ mod tests {
             request_max_retries: Some(0),
             stream_max_retries: Some(0),
             stream_idle_timeout_ms: Some(1000),
+            requires_auth: false,
         };
 
         let events = collect_events(&[sse1.as_bytes()], provider).await;
@@ -728,7 +754,7 @@ mod tests {
 
             let provider = ModelProviderInfo {
                 name: "test".to_string(),
-                base_url: "https://test.com".to_string(),
+                base_url: Some("https://test.com".to_string()),
                 env_key: Some("TEST_API_KEY".to_string()),
                 env_key_instructions: None,
                 wire_api: WireApi::Responses,
@@ -738,6 +764,7 @@ mod tests {
                 request_max_retries: Some(0),
                 stream_max_retries: Some(0),
                 stream_idle_timeout_ms: Some(1000),
+                requires_auth: false,
             };
 
             let out = run_sse(evs, provider).await;
