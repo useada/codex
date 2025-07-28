@@ -64,10 +64,15 @@ async fn includes_session_id_and_model_headers_in_request() {
     let codex_home = TempDir::new().unwrap();
     let mut config = load_default_config_for_test(&codex_home);
     config.model_provider = model_provider;
-    config.auth = Some(auth_from_api_key("Test API Key".to_string()));
 
     let ctrl_c = std::sync::Arc::new(tokio::sync::Notify::new());
-    let CodexSpawnOk { codex, .. } = Codex::spawn(config, ctrl_c.clone()).await.unwrap();
+    let CodexSpawnOk { codex, .. } = Codex::spawn(
+        config,
+        Some(auth_from_api_key("Test API Key".to_string())),
+        ctrl_c.clone(),
+    )
+    .await
+    .unwrap();
 
     codex
         .submit(Op::UserInput {
@@ -133,10 +138,15 @@ async fn includes_base_instructions_override_in_request() {
 
     config.base_instructions = Some("test instructions".to_string());
     config.model_provider = model_provider;
-    config.auth = Some(auth_from_api_key("Test API Key".to_string()));
 
     let ctrl_c = std::sync::Arc::new(tokio::sync::Notify::new());
-    let CodexSpawnOk { codex, .. } = Codex::spawn(config, ctrl_c.clone()).await.unwrap();
+    let CodexSpawnOk { codex, .. } = Codex::spawn(
+        config,
+        Some(auth_from_api_key("Test API Key".to_string())),
+        ctrl_c.clone(),
+    )
+    .await
+    .unwrap();
 
     codex
         .submit(Op::UserInput {
@@ -195,9 +205,14 @@ async fn chatgpt_auth_sends_correct_request() {
     let codex_home = TempDir::new().unwrap();
     let mut config = load_default_config_for_test(&codex_home);
     config.model_provider = model_provider;
-    config.auth = Some(auth_from_token("Access Token".to_string()));
     let ctrl_c = std::sync::Arc::new(tokio::sync::Notify::new());
-    let CodexSpawnOk { codex, .. } = Codex::spawn(config, ctrl_c.clone()).await.unwrap();
+    let CodexSpawnOk { codex, .. } = Codex::spawn(
+        config,
+        Some(auth_from_token("Access Token".to_string())),
+        ctrl_c.clone(),
+    )
+    .await
+    .unwrap();
 
     codex
         .submit(Op::UserInput {

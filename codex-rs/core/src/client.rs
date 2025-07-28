@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use bytes::Bytes;
 use codex_login::AuthMode;
+use codex_login::CodexAuth;
 use eventsource_stream::Eventsource;
 use futures::prelude::*;
 use reqwest::StatusCode;
@@ -43,6 +44,7 @@ use std::sync::Arc;
 #[derive(Clone)]
 pub struct ModelClient {
     config: Arc<Config>,
+    auth: Option<CodexAuth>,
     client: reqwest::Client,
     provider: ModelProviderInfo,
     session_id: Uuid,
@@ -53,6 +55,7 @@ pub struct ModelClient {
 impl ModelClient {
     pub fn new(
         config: Arc<Config>,
+        auth: Option<CodexAuth>,
         provider: ModelProviderInfo,
         effort: ReasoningEffortConfig,
         summary: ReasoningSummaryConfig,
@@ -60,6 +63,7 @@ impl ModelClient {
     ) -> Self {
         Self {
             config,
+            auth,
             client: reqwest::Client::new(),
             provider,
             session_id,
@@ -116,7 +120,7 @@ impl ModelClient {
             return stream_from_fixture(path, self.provider.clone()).await;
         }
 
-        let auth = self.config.auth.as_ref().ok_or_else(|| {
+        let auth = self.auth.as_ref().ok_or_else(|| {
             CodexErr::EnvVar(EnvVarError {
                 var: "OPENAI_API_KEY".to_string(),
                 instructions: Some("Create an API key (https://platform.openai.com) and export it as an environment variable.".to_string()),

@@ -15,8 +15,6 @@ use crate::model_provider_info::built_in_model_providers;
 use crate::openai_model_info::get_model_info;
 use crate::protocol::AskForApproval;
 use crate::protocol::SandboxPolicy;
-use codex_login::CodexAuth;
-use codex_login::load_auth;
 use dirs::home_dir;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -148,9 +146,6 @@ pub struct Config {
 
     /// Client ID for the ChatGPT Auth.
     pub experimental_client_id: Option<String>,
-
-    /// Auth information for the model provider.
-    pub auth: Option<CodexAuth>,
 }
 
 impl Config {
@@ -480,8 +475,6 @@ impl Config {
             cfg.experimental_instructions_file.as_ref(),
         ));
 
-        let auth = load_auth(&codex_home)?;
-
         let config = Self {
             model,
             model_context_window,
@@ -532,7 +525,6 @@ impl Config {
 
             experimental_resume,
             experimental_client_id: cfg.experimental_client_id,
-            auth,
         };
         Ok(config)
     }
@@ -858,7 +850,6 @@ disable_response_storage = true
                 experimental_resume: None,
                 base_instructions: None,
                 experimental_client_id: None,
-                auth: None,
             },
             o3_profile_config
         );
@@ -908,7 +899,6 @@ disable_response_storage = true
             experimental_resume: None,
             base_instructions: None,
             experimental_client_id: None,
-            auth: None,
         };
 
         assert_eq!(expected_gpt3_profile_config, gpt3_profile_config);
@@ -973,7 +963,6 @@ disable_response_storage = true
             experimental_resume: None,
             base_instructions: None,
             experimental_client_id: None,
-            auth: None,
         };
 
         assert_eq!(expected_zdr_profile_config, zdr_profile_config);

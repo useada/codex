@@ -79,6 +79,7 @@ pub struct ModelProviderInfo {
     pub stream_idle_timeout_ms: Option<u64>,
 
     /// Whether this provider requires some form of standard authentication (API key, ChatGPT token).
+    #[serde(default)]
     pub requires_auth: bool,
 }
 
