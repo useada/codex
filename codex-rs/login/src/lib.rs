@@ -56,6 +56,15 @@ impl CodexAuth {
         }
     }
 
+    pub fn from_api_key(api_key: String) -> Self {
+        Self {
+            api_key: Some(api_key),
+            mode: AuthMode::ApiKey,
+            auth_file: PathBuf::new(),
+            auth_dot_json: Arc::new(Mutex::new(None)),
+        }
+    }
+
     pub async fn get_token_data(&self) -> Result<TokenData, std::io::Error> {
         #[expect(clippy::unwrap_used)]
         let auth_dot_json = self.auth_dot_json.lock().unwrap().clone();
