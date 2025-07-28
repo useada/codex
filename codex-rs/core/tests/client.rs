@@ -197,7 +197,7 @@ async fn chatgpt_auth_sends_correct_request() {
     config.model_provider = model_provider;
     config.auth = Some(auth_from_token("Access Token".to_string()));
     let ctrl_c = std::sync::Arc::new(tokio::sync::Notify::new());
-    let (codex, _init_id, _session_id) = Codex::spawn(config, ctrl_c.clone()).await.unwrap();
+    let CodexSpawnOk { codex, .. } = Codex::spawn(config, ctrl_c.clone()).await.unwrap();
 
     codex
         .submit(Op::UserInput {
