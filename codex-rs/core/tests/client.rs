@@ -68,7 +68,7 @@ async fn includes_session_id_and_model_headers_in_request() {
     let ctrl_c = std::sync::Arc::new(tokio::sync::Notify::new());
     let CodexSpawnOk { codex, .. } = Codex::spawn(
         config,
-        Some(auth_from_api_key("Test API Key".to_string())),
+        Some(CodexAuth::from_api_key("Test API Key".to_string())),
         ctrl_c.clone(),
     )
     .await
@@ -142,7 +142,7 @@ async fn includes_base_instructions_override_in_request() {
     let ctrl_c = std::sync::Arc::new(tokio::sync::Notify::new());
     let CodexSpawnOk { codex, .. } = Codex::spawn(
         config,
-        Some(auth_from_api_key("Test API Key".to_string())),
+        Some(CodexAuth::from_api_key("Test API Key".to_string())),
         ctrl_c.clone(),
     )
     .await
@@ -255,10 +255,6 @@ async fn chatgpt_auth_sends_correct_request() {
         request_body["include"][0].as_str().unwrap(),
         "reasoning.encrypted_content"
     );
-}
-
-fn auth_from_api_key(api_key: String) -> CodexAuth {
-    CodexAuth::new(Some(api_key), AuthMode::ApiKey, PathBuf::new(), None)
 }
 
 fn auth_from_token(id_token: String) -> CodexAuth {
