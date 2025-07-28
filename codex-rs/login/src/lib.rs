@@ -11,6 +11,8 @@ use std::os::unix::fs::OpenOptionsExt;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Stdio;
+use std::sync::Arc;
+use std::sync::Mutex;
 use tokio::process::Command;
 
 const SOURCE_FOR_PYTHON_SERVER: &str = include_str!("./login_with_chatgpt.py");
@@ -24,28 +26,56 @@ pub enum AuthMode {
     ChatGPT,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct CodexAuth {
     pub api_key: Option<String>,
     pub mode: AuthMode,
-    pub auth_dot_json: Option<AuthDotJson>,
-    pub auth_file: PathBuf,
+    auth_dot_json: Arc<Mutex<Option<AuthDotJson>>>,
+    auth_file: PathBuf,
+}
+
+impl PartialEq for CodexAuth {
+    fn eq(&self, other: &Self) -> bool {
+        self.mode == other.mode
+    }
 }
 
 impl CodexAuth {
+    pub fn new(
+        api_key: Option<String>,
+        mode: AuthMode,
+        auth_file: PathBuf,
+        auth_dot_json: Option<AuthDotJson>,
+    ) -> Self {
+        let auth_dot_json = Arc::new(Mutex::new(auth_dot_json));
+        Self {
+            api_key,
+            mode,
+            auth_file,
+            auth_dot_json,
+        }
+    }
+
     pub async fn get_token_data(&self) -> Result<TokenData, std::io::Error> {
-        match &self.auth_dot_json {
+        #[expect(clippy::unwrap_used)]
+        let auth_dot_json = self.auth_dot_json.lock().unwrap().clone();
+
+        match auth_dot_json {
             Some(auth_dot_json) => {
-                if self.is_expired() {
+                if auth_dot_json.last_refresh < Utc::now() - chrono::Duration::days(28) {
                     let refresh_response: RefreshResponse =
                         try_refresh_token(auth_dot_json.tokens.refresh_token.clone()).await?;
-                    update_tokens(
+                    let updated_auth_dot_json = update_tokens(
                         &self.auth_file,
                         refresh_response.id_token,
                         refresh_response.access_token,
                         refresh_response.refresh_token,
                     )
                     .await?;
+
+                    #[expect(clippy::unwrap_used)]
+                    let mut auth_dot_json = self.auth_dot_json.lock().unwrap();
+                    *auth_dot_json = Some(updated_auth_dot_json);
                 }
                 Ok(auth_dot_json.tokens.clone())
             }
@@ -61,15 +91,6 @@ impl CodexAuth {
 
                 Ok(id_token)
             }
-        }
-    }
-
-    fn is_expired(&self) -> bool {
-        match &self.auth_dot_json {
-            Some(auth_dot_json) => {
-                auth_dot_json.last_refresh < Utc::now() - chrono::Duration::days(28)
-            }
-            None => true,
         }
     }
 }
@@ -104,7 +125,7 @@ pub fn load_auth(codex_home: &Path) -> std::io::Result<Option<CodexAuth>> {
         api_key: openai_api_key,
         mode,
         auth_file,
-        auth_dot_json,
+        auth_dot_json: Arc::new(Mutex::new(auth_dot_json)),
     }))
 }
 
@@ -170,7 +191,7 @@ async fn update_tokens(
     id_token: String,
     access_token: Option<String>,
     refresh_token: Option<String>,
-) -> std::io::Result<()> {
+) -> std::io::Result<AuthDotJson> {
     let mut options = OpenOptions::new();
     options.truncate(true).write(true).create(true);
     #[cfg(unix)]
@@ -188,13 +209,13 @@ async fn update_tokens(
     }
     auth_dot_json.last_refresh = Utc::now();
 
-    let json_data = serde_json::to_string(&auth_dot_json)?;
+    let json_data = serde_json::to_string_pretty(&auth_dot_json)?;
     {
         let mut file = options.open(auth_file)?;
         file.write_all(json_data.as_bytes())?;
         file.flush()?;
     }
-    Ok(())
+    Ok(auth_dot_json)
 }
 
 async fn try_refresh_token(refresh_token: String) -> std::io::Result<RefreshResponse> {

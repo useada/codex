@@ -121,7 +121,7 @@ impl ModelClient {
                 var: "OPENAI_API_KEY".to_string(),
                 instructions: Some("Create an API key (https://platform.openai.com) and export it as an environment variable.".to_string()),
             })
-        })?.clone();
+        })?;
 
         let store = prompt.store && auth.mode != AuthMode::ChatGPT;
 

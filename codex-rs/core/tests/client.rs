@@ -242,19 +242,15 @@ async fn chatgpt_auth_sends_correct_request() {
 }
 
 fn auth_from_api_key(api_key: String) -> CodexAuth {
-    CodexAuth {
-        api_key: Some(api_key),
-        mode: AuthMode::ApiKey,
-        auth_dot_json: None,
-        auth_file: PathBuf::new(),
-    }
+    CodexAuth::new(Some(api_key), AuthMode::ApiKey, PathBuf::new(), None)
 }
 
 fn auth_from_token(id_token: String) -> CodexAuth {
-    CodexAuth {
-        api_key: None,
-        mode: AuthMode::ChatGPT,
-        auth_dot_json: Some(AuthDotJson {
+    CodexAuth::new(
+        None,
+        AuthMode::ChatGPT,
+        PathBuf::new(),
+        Some(AuthDotJson {
             tokens: TokenData {
                 id_token,
                 access_token: "Access Token".to_string(),
@@ -264,6 +260,5 @@ fn auth_from_token(id_token: String) -> CodexAuth {
             last_refresh: Utc::now(),
             openai_api_key: None,
         }),
-        auth_file: PathBuf::new(),
-    }
+    )
 }
