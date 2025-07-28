@@ -4,7 +4,6 @@ use codex_core::config::ConfigOverrides;
 use codex_login::AuthMode;
 use codex_login::load_auth;
 use codex_login::login_with_chatgpt;
-use codex_login::safe_format_key;
 
 pub async fn run_login_with_chatgpt(cli_config_overrides: CliConfigOverrides) -> ! {
     let config = load_config_or_exit(cli_config_overrides);
@@ -73,5 +72,31 @@ fn load_config_or_exit(cli_config_overrides: CliConfigOverrides) -> Config {
             eprintln!("Error loading configuration: {e}");
             std::process::exit(1);
         }
+    }
+}
+
+fn safe_format_key(key: &str) -> String {
+    if key.len() <= 13 {
+        return "***".to_string();
+    }
+    let prefix = &key[..8];
+    let suffix = &key[key.len() - 5..];
+    format!("{}***{}", prefix, suffix)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::safe_format_key;
+
+    #[test]
+    fn formats_long_key() {
+        let key = "sk-proj-1234567890ABCDE";
+        assert_eq!(safe_format_key(key), "sk-proj-***ABCDE");
+    }
+
+    #[test]
+    fn short_key_returns_stars() {
+        let key = "sk-proj-12345";
+        assert_eq!(safe_format_key(key), "***");
     }
 }

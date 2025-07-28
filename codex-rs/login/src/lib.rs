@@ -138,32 +138,6 @@ pub fn load_auth(codex_home: &Path) -> std::io::Result<Option<CodexAuth>> {
     }))
 }
 
-pub fn safe_format_key(key: &str) -> String {
-    if key.len() <= 13 {
-        return "***".to_string();
-    }
-    let prefix = &key[..8];
-    let suffix = &key[key.len() - 5..];
-    format!("{}***{}", prefix, suffix)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::safe_format_key;
-
-    #[test]
-    fn formats_long_key() {
-        let key = "sk-proj-1234567890ABCDE";
-        assert_eq!(safe_format_key(key), "sk-proj-***ABCDE");
-    }
-
-    #[test]
-    fn short_key_returns_stars() {
-        let key = "sk-proj-12345";
-        assert_eq!(safe_format_key(key), "***");
-    }
-}
-
 /// Run `python3 -c {{SOURCE_FOR_PYTHON_SERVER}}` with the CODEX_HOME
 /// environment variable set to the provided `codex_home` path. If the
 /// subprocess exits 0, read the OPENAI_API_KEY property out of
