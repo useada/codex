@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use chrono::Utc;
 use codex_core::Codex;
+use codex_core::CodexSpawnOk;
 use codex_core::ModelProviderInfo;
 use codex_core::built_in_model_providers;
 use codex_core::exec::CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR;
@@ -66,7 +67,7 @@ async fn includes_session_id_and_model_headers_in_request() {
     config.auth = Some(auth_from_api_key("Test API Key".to_string()));
 
     let ctrl_c = std::sync::Arc::new(tokio::sync::Notify::new());
-    let (codex, _init_id, _session_id) = Codex::spawn(config, ctrl_c.clone()).await.unwrap();
+    let CodexSpawnOk { codex, .. } = Codex::spawn(config, ctrl_c.clone()).await.unwrap();
 
     codex
         .submit(Op::UserInput {
@@ -135,7 +136,7 @@ async fn includes_base_instructions_override_in_request() {
     config.auth = Some(auth_from_api_key("Test API Key".to_string()));
 
     let ctrl_c = std::sync::Arc::new(tokio::sync::Notify::new());
-    let (codex, ..) = Codex::spawn(config, ctrl_c.clone()).await.unwrap();
+    let CodexSpawnOk { codex, .. } = Codex::spawn(config, ctrl_c.clone()).await.unwrap();
 
     codex
         .submit(Op::UserInput {
