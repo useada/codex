@@ -26,6 +26,7 @@ use codex_core::protocol::TokenUsage;
 use crossterm::event::KeyEvent;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
+use ratatui::layout::Size;
 use ratatui::widgets::Widget;
 use ratatui::widgets::WidgetRef;
 use tokio::sync::mpsc::UnboundedSender;
@@ -141,6 +142,10 @@ impl ChatWidget<'_> {
             reasoning_buffer: String::new(),
             answer_buffer: String::new(),
         }
+    }
+
+    pub fn desired_height(&self) -> u16 {
+        self.bottom_pane.desired_height()
     }
 
     pub(crate) fn handle_key_event(&mut self, key_event: KeyEvent) {

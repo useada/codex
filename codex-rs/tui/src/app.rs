@@ -12,6 +12,8 @@ use codex_core::protocol::Event;
 use color_eyre::eyre::Result;
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
+use ratatui::layout::Rect;
+use ratatui::prelude::Backend;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
@@ -321,6 +323,24 @@ impl App<'_> {
     fn draw_next_frame(&mut self, terminal: &mut tui::Tui) -> Result<()> {
         // TODO: add a throttle to avoid redrawing too often
 
+        let size = terminal.size()?;
+        let desired_height = match &self.app_state {
+            AppState::Chat { widget } => widget.desired_height(),
+            AppState::GitWarning { .. } => 10,
+        };
+        let mut area = terminal.viewport_area;
+        area.height = desired_height;
+        area.width = size.width;
+        if area.bottom() > size.height {
+            terminal
+                .backend_mut()
+                .scroll_region_up(0..area.top(), area.bottom() - size.height)?;
+            area.y = size.height - area.height;
+        }
+        if area != terminal.viewport_area {
+            terminal.clear()?;
+            terminal.set_viewport_area(area);
+        }
         match &mut self.app_state {
             AppState::Chat { widget } => {
                 terminal.draw(|frame| frame.render_widget_ref(&**widget, frame.area()))?;

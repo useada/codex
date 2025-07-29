@@ -10,6 +10,7 @@ use codex_file_search::FileMatch;
 use crossterm::event::KeyEvent;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
+use ratatui::layout::Size;
 use ratatui::widgets::WidgetRef;
 
 mod approval_modal_view;
@@ -62,6 +63,10 @@ impl BottomPane<'_> {
             is_task_running: false,
             ctrl_c_quit_hint: false,
         }
+    }
+
+    pub fn desired_height(&self) -> u16 {
+        self.composer.desired_height()
     }
 
     /// Forward a key event to the active view or the composer.
