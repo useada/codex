@@ -886,6 +886,7 @@ disable_response_storage = true
                 chatgpt_base_url: "https://chatgpt.com/backend-api/".to_string(),
                 experimental_resume: None,
                 base_instructions: None,
+                include_plan_tool: false,
             },
             o3_profile_config
         );
@@ -934,6 +935,7 @@ disable_response_storage = true
             chatgpt_base_url: "https://chatgpt.com/backend-api/".to_string(),
             experimental_resume: None,
             base_instructions: None,
+            include_plan_tool: false,
         };
 
         assert_eq!(expected_gpt3_profile_config, gpt3_profile_config);
@@ -997,6 +999,7 @@ disable_response_storage = true
             chatgpt_base_url: "https://chatgpt.com/backend-api/".to_string(),
             experimental_resume: None,
             base_instructions: None,
+            include_plan_tool: false,
         };
 
         assert_eq!(expected_zdr_profile_config, zdr_profile_config);
