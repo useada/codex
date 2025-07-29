@@ -77,6 +77,7 @@ pub async fn run_main(
             config_profile: cli.config_profile.clone(),
             codex_linux_sandbox_exe,
             base_instructions: None,
+            include_plan_tool: None,
         };
         // Parse `-c` overrides from the CLI.
         let cli_kv_overrides = match cli.config_overrides.parse_overrides() {
@@ -142,15 +143,13 @@ pub async fn run_main(
 
     let show_login_screen = should_show_login_screen(&config);
     if show_login_screen {
-        std::io::stdout().write_all(
-            b"Oh dear, we don't seem to have an API key.\nTerribly sorry, but may I open a browser window for you to log in? [Yn] ",
-        )?;
+        std::io::stdout()
+            .write_all(b"No API key detected.\nLogin with your ChatGPT account? [Yn] ")?;
         std::io::stdout().flush()?;
         let mut input = String::new();
         std::io::stdin().read_line(&mut input)?;
         let trimmed = input.trim();
         if !(trimmed.is_empty() || trimmed.eq_ignore_ascii_case("y")) {
-            std::io::stdout().write_all(b"Right-o, fair enough. See you next time!\n")?;
             std::process::exit(1);
         }
         // Spawn a task to run the login command.
@@ -162,7 +161,7 @@ pub async fn run_main(
         )
         .await?;
 
-        std::io::stdout().write_all(b"Excellent, looks like that worked. Let's get started!\n")?;
+        std::io::stdout().write_all(b"Login successful.\n")?;
     }
 
     // Determine whether we need to display the "not a git repo" warning
