@@ -204,6 +204,8 @@ impl ChatWidget<'_> {
         let Event { id, msg } = event;
         match msg {
             EventMsg::SessionConfigured(event) => {
+                self.bottom_pane
+                    .set_history_metadata(event.history_log_id, event.history_entry_count);
                 // Record session information at the top of the conversation.
                 self.add_to_history(HistoryCell::new_session_info(&self.config, event, true));
 
