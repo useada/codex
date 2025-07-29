@@ -154,12 +154,7 @@ pub async fn run_main(
         }
         // Spawn a task to run the login command.
         // Block until the login command is finished.
-        codex_login::login_with_chatgpt(
-            &config.codex_home,
-            false,
-            config.experimental_client_id.clone(),
-        )
-        .await?;
+        codex_login::login_with_chatgpt(&config.codex_home, false).await?;
 
         std::io::stdout().write_all(b"Login successful.\n")?;
     }

@@ -157,19 +157,12 @@ pub fn load_auth(codex_home: &Path) -> std::io::Result<Option<CodexAuth>> {
 /// If `capture_output` is true, the subprocess's output will be captured and
 /// recorded in memory. Otherwise, the subprocess's output will be sent to the
 /// current process's stdout/stderr.
-pub async fn login_with_chatgpt(
-    codex_home: &Path,
-    capture_output: bool,
-    client_id: Option<String>,
-) -> std::io::Result<()> {
+pub async fn login_with_chatgpt(codex_home: &Path, capture_output: bool) -> std::io::Result<()> {
     let child = Command::new("python3")
         .arg("-c")
         .arg(SOURCE_FOR_PYTHON_SERVER)
         .env("CODEX_HOME", codex_home)
-        .env(
-            "CODEX_CLIENT_ID",
-            client_id.unwrap_or(CLIENT_ID.to_string()),
-        )
+        .env("CODEX_CLIENT_ID", CLIENT_ID)
         .stdin(Stdio::null())
         .stdout(if capture_output {
             Stdio::piped()

@@ -144,6 +144,8 @@ pub struct Config {
     /// Experimental rollout resume path (absolute path to .jsonl; undocumented).
     pub experimental_resume: Option<PathBuf>,
 
+    /// Include an experimental plan tool that the model can use to update its current plan and status of each step.
+    pub include_plan_tool: bool,
 }
 
 impl Config {
@@ -334,9 +336,6 @@ pub struct ConfigToml {
 
     /// Experimental path to a file whose contents replace the built-in BASE_INSTRUCTIONS.
     pub experimental_instructions_file: Option<PathBuf>,
-
-    /// Client ID for the ChatGPT Auth.
-    pub experimental_client_id: Option<String>,
 }
 
 impl ConfigToml {
