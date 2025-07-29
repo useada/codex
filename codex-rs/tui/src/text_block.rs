@@ -19,13 +19,13 @@ impl CellWidget for TextBlock {
         // Use the same wrapping configuration as ConversationHistoryWidget so
         // measurement stays in sync with rendering.
         ratatui::widgets::Paragraph::new(self.lines.clone())
-            .wrap(crate::conversation_history_widget::wrap_cfg())
+            .wrap(ratatui::widgets::Wrap { trim: false })
             .line_count(width)
     }
 
     fn render_window(&self, first_visible_line: usize, area: Rect, buf: &mut Buffer) {
         ratatui::widgets::Paragraph::new(self.lines.clone())
-            .wrap(crate::conversation_history_widget::wrap_cfg())
+            .wrap(ratatui::widgets::Wrap { trim: false })
             .scroll((first_visible_line as u16, 0))
             .render(area, buf);
     }

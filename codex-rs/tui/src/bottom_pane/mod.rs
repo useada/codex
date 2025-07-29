@@ -232,10 +232,6 @@ impl BottomPane<'_> {
 
     // --- History helpers ---
 
-    pub(crate) fn set_history_metadata(&mut self, log_id: u64, entry_count: usize) {
-        self.composer.set_history_metadata(log_id, entry_count);
-    }
-
     pub(crate) fn on_history_entry_response(
         &mut self,
         log_id: u64,

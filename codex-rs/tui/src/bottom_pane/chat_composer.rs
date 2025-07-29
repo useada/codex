@@ -108,12 +108,6 @@ impl ChatComposer<'_> {
         self.textarea.set_placeholder_text(placeholder);
     }
 
-    /// Record the history metadata advertised by `SessionConfiguredEvent` so
-    /// that the composer can navigate cross-session history.
-    pub(crate) fn set_history_metadata(&mut self, log_id: u64, entry_count: usize) {
-        self.history.set_metadata(log_id, entry_count);
-    }
-
     /// Integrate an asynchronous response to an on-demand history lookup. If
     /// the entry is present and the offset matches the current cursor we
     /// immediately populate the textarea.
