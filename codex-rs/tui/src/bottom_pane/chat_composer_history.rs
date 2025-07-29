@@ -45,16 +45,6 @@ impl ChatComposerHistory {
         }
     }
 
-    /// Update metadata when a new session is configured.
-    pub fn set_metadata(&mut self, log_id: u64, entry_count: usize) {
-        self.history_log_id = Some(log_id);
-        self.history_entry_count = entry_count;
-        self.fetched_history.clear();
-        self.local_history.clear();
-        self.history_cursor = None;
-        self.last_history_text = None;
-    }
-
     /// Record a message submitted by the user in the current session so it can
     /// be recalled later.
     pub fn record_local_submission(&mut self, text: &str) {
@@ -214,8 +204,6 @@ mod tests {
         let tx = AppEventSender::new(tx);
 
         let mut history = ChatComposerHistory::new();
-        // Pretend there are 3 persistent entries.
-        history.set_metadata(1, 3);
 
         let mut textarea = TextArea::default();
 

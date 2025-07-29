@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Duration;
 
 use codex_core::codex_wrapper::CodexConversation;
 use codex_core::codex_wrapper::init_codex;
@@ -14,8 +15,10 @@ use codex_core::protocol::Event;
 use codex_core::protocol::EventMsg;
 use codex_core::protocol::ExecApprovalRequestEvent;
 use codex_core::protocol::ExecCommandBeginEvent;
+use codex_core::protocol::ExecCommandEndEvent;
 use codex_core::protocol::InputItem;
 use codex_core::protocol::McpToolCallBeginEvent;
+use codex_core::protocol::McpToolCallEndEvent;
 use codex_core::protocol::Op;
 use codex_core::protocol::PatchApplyBeginEvent;
 use codex_core::protocol::TaskCompleteEvent;
@@ -35,6 +38,7 @@ use crate::bottom_pane::BottomPaneParams;
 use crate::bottom_pane::CancellationEvent;
 use crate::bottom_pane::InputResult;
 use crate::exec_command::strip_bash_lc_and_escape;
+use crate::history_cell::CommandOutput;
 use crate::history_cell::HistoryCell;
 use crate::history_cell::PatchEventType;
 use crate::user_approval_widget::ApprovalRequest;
@@ -333,11 +337,11 @@ impl ChatWidget<'_> {
                 self.request_redraw();
             }
             EventMsg::ExecCommandBegin(ExecCommandBeginEvent {
-                call_id,
+                call_id: _,
                 command,
                 cwd: _,
             }) => {
-                self.add_to_history(HistoryCell::new_active_exec_command(call_id, command));
+                self.add_to_history(HistoryCell::new_active_exec_command(command));
                 self.request_redraw();
             }
             EventMsg::PatchApplyBegin(PatchApplyBeginEvent {
@@ -353,22 +357,45 @@ impl ChatWidget<'_> {
                 ));
                 self.request_redraw();
             }
-            EventMsg::ExecCommandEnd(_) => {
-                // TODO: update the history
+            EventMsg::ExecCommandEnd(ExecCommandEndEvent {
+                call_id,
+                exit_code,
+                stdout,
+                stderr,
+            }) => {
+                self.add_to_history(HistoryCell::new_completed_exec_command(
+                    call_id,
+                    CommandOutput {
+                        exit_code,
+                        stdout,
+                        stderr,
+                        duration: Duration::from_secs(0),
+                    },
+                ));
             }
             EventMsg::McpToolCallBegin(McpToolCallBeginEvent {
-                call_id,
-                server,
-                tool,
-                arguments,
+                call_id: _,
+                invocation,
             }) => {
-                self.add_to_history(HistoryCell::new_active_mcp_tool_call(
-                    call_id, server, tool, arguments,
-                ));
+                self.add_to_history(HistoryCell::new_active_mcp_tool_call(invocation));
                 self.request_redraw();
             }
-            EventMsg::McpToolCallEnd(_) => {
-                // TODO: update the history
+            EventMsg::McpToolCallEnd(McpToolCallEndEvent {
+                call_id: _,
+                duration,
+                invocation,
+                result,
+            }) => {
+                self.add_to_history(HistoryCell::new_completed_mcp_tool_call(
+                    80,
+                    invocation,
+                    duration,
+                    result
+                        .as_ref()
+                        .map(|r| r.is_error.unwrap_or(false))
+                        .unwrap_or(false),
+                    result,
+                ));
             }
             EventMsg::GetHistoryEntryResponse(event) => {
                 let codex_core::protocol::GetHistoryEntryResponseEvent {
